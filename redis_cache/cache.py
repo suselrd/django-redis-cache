@@ -1,3 +1,4 @@
+from collections import defaultdict
 from django.core.cache.backends.base import BaseCache, InvalidCacheBackendError
 from django.core.exceptions import ImproperlyConfigured
 from django.utils import importlib
@@ -16,6 +17,7 @@ except ImportError:
         "Redis cache backend requires the 'redis-py' library")
 from redis.connection import UnixDomainSocketConnection, Connection
 from redis.connection import DefaultParser
+from redis_cache.sharder import CacheSharder
 
 
 @python_2_unicode_compatible
@@ -29,7 +31,6 @@ class CacheKey(object):
     def __eq__(self, other):
         return self._key == other
 
-<<<<<<< HEAD
     def __str__(self):
         return smart_text(self._key)
 
@@ -38,10 +39,6 @@ class CacheKey(object):
 
     def __hash__(self):
         return hash(self._key)
-=======
-    def __unicode__(self):
-        return smart_str(self._key)
->>>>>>> Deprecating Django 1.2 and below and making changes for v1.0
 
     __repr__ = __str__ = __unicode__
 
@@ -86,39 +83,45 @@ class RedisCache(BaseCache):
 
     def _init(self, server, params):
         super(RedisCache, self).__init__(params)
-        self._server = server
         self._params = params
+        self._server = server
+        self.clients = []
+        self.sharder = CacheSharder()
 
-        unix_socket_path = None
-        if ':' in self.server:
-            host, port = self.server.rsplit(':', 1)
-            try:
-                port = int(port)
-            except (ValueError, TypeError):
-                raise ImproperlyConfigured("port value must be an integer")
+        if not isinstance(server, (list, tuple)):
+            servers = [server]
         else:
-            host, port = None, None
-            unix_socket_path = self.server
+            servers = server
 
-        kwargs = {
-            'db': self.db,
-            'password': self.password,
-            'host': host,
-            'port': port,
-            'unix_socket_path': unix_socket_path,
-        }
-        connection_pool = pool.get_connection_pool(
-            parser_class=self.parser_class,
-            **kwargs
-        )
-        self._client = redis.Redis(
-            connection_pool=connection_pool,
-            **kwargs
-        )
+        for server in servers:
+            unix_socket_path = None
+            if ':' in server:
+                host, port = server.rsplit(':', 1)
+                try:
+                    port = int(port)
+                except (ValueError, TypeError):
+                    raise ImproperlyConfigured("port value must be an integer")
+            else:
+                host, port = None, None
+                unix_socket_path = server
 
-    @property
-    def server(self):
-        return self._server or "127.0.0.1:6379"
+            kwargs = {
+                'db': self.db,
+                'password': self.password,
+                'host': host,
+                'port': port,
+                'unix_socket_path': unix_socket_path,
+            }
+            connection_pool = pool.get_connection_pool(
+                parser_class=self.parser_class,
+                **kwargs
+            )
+            client = redis.Redis(
+                connection_pool=connection_pool,
+                **kwargs
+            )
+            self.clients.append(client)
+            self.sharder.add(client, "%s:%s" % (host, port))
 
     @property
     def params(self):
@@ -160,6 +163,18 @@ class RedisCache(BaseCache):
     def __setstate__(self, state):
         self._init(**state)
 
+    def get_client(self, key):
+        return self.sharder.get_client(key)
+
+    def shard(self, keys, version=None):
+        """
+        Returns a dict of keys that belong to a cache's keyspace.
+        """
+        clients = defaultdict(list)
+        for key in keys:
+            clients[self.get_client(key)].append(key)
+        return clients
+
     def make_key(self, key, version=None):
         if not isinstance(key, CacheKey):
             key = super(RedisCache, self).make_key(key, version)
@@ -172,6 +187,9 @@ class RedisCache(BaseCache):
 
         Returns ``True`` if the object was added, ``False`` if not.
         """
+        client = self.get_client(key)
+        if client.exists(self.make_key(key, version=version)):
+            return False
         return self.set(key, value, timeout, _add_only=True)
 
     def get(self, key, default=None, version=None):
@@ -180,8 +198,9 @@ class RedisCache(BaseCache):
 
         Returns unpickled value if key is found, the default if not.
         """
+        client = self.get_client(key)
         key = self.make_key(key, version=version)
-        value = self._client.get(key)
+        value = client.get(key)
         if value is None:
             return default
         try:
@@ -209,8 +228,8 @@ class RedisCache(BaseCache):
         """
         Persist a value to the cache, and set an optional expiration time.
         """
-        if not client:
-            client = self._client
+        if client is None:
+            client = self.get_client(key)
         key = self.make_key(key, version=version)
         if timeout is None:
             timeout = self.default_timeout
@@ -227,22 +246,26 @@ class RedisCache(BaseCache):
         """
         Remove a key from the cache.
         """
-        self._client.delete(self.make_key(key, version=version))
+        client = self.get_client(key)
+        key = self.make_key(key, version=version)
+        client.delete(key)
 
     def delete_many(self, keys, version=None):
         """
         Remove multiple keys at once.
         """
-        if keys:
-            keys = map(lambda key: self.make_key(key, version=version), keys)
-            self._client.delete(*keys)
+        clients = self.shard(keys)
+        for client, keys in clients.items():
+            keys = [self.make_key(key, version=version) for key in keys]
+            client.delete(*keys)
 
     def clear(self):
         """
         Flush all cache keys.
         """
         # TODO : potential data loss here, should we only delete keys based on the correct version ?
-        self._client.flushdb()
+        for client in self.clients:
+            client.flushdb()
 
     def unpickle(self, value):
         """
@@ -251,7 +274,7 @@ class RedisCache(BaseCache):
         value = smart_bytes(value)
         return pickle.loads(value)
 
-    def get_many(self, keys, version=None):
+    def _get_many(self, client, keys, version=None):
         """
         Retrieve many keys.
         """
@@ -260,7 +283,7 @@ class RedisCache(BaseCache):
         recovered_data = SortedDict()
         new_keys = list(map(lambda key: self.make_key(key, version=version), keys))
         map_keys = dict(zip(new_keys, keys))
-        results = self._client.mget(new_keys)
+        results = client.mget(new_keys)
         for key, value in zip(new_keys, results):
             if value is None:
                 continue
@@ -273,6 +296,13 @@ class RedisCache(BaseCache):
             recovered_data[map_keys[key]] = value
         return recovered_data
 
+    def get_many(self, keys, version=None):
+        data = {}
+        clients = self.shard(keys)
+        for client, keys in clients.items():
+            data.update(self._get_many(client, keys))
+        return data
+
     def set_many(self, data, timeout=None, version=None):
         """
         Set a bunch of values in the cache at once from a dict of key/value
@@ -281,22 +311,25 @@ class RedisCache(BaseCache):
         If timeout is given, that timeout will be used for the key; otherwise
         the default cache timeout will be used.
         """
-        pipeline = self._client.pipeline()
-        for key, value in data.items():
-            self.set(key, value, timeout, version=version, client=pipeline)
-        pipeline.execute()
+        clients = self.shard(data.keys())
+        for client, keys in clients.iteritems():
+            pipeline = client.pipeline()
+            for key in keys:
+                self.set(key, data[key], timeout, version=version, client=pipeline)
+            pipeline.execute()
 
     def incr(self, key, delta=1, version=None):
         """
         Add delta to value in the cache. If the key does not exist, raise a
         ValueError exception.
         """
+        client = self.get_client(key)
         key = self.make_key(key, version=version)
-        exists = self._client.exists(key)
+        exists = client.exists(key)
         if not exists:
             raise ValueError("Key '%s' not found" % key)
         try:
-            value = self._client.incr(key, delta)
+            value = client.incr(key, delta)
         except redis.ResponseError:
             value = self.get(key) + 1
             self.set(key, value)
@@ -310,16 +343,12 @@ class RedisCache(BaseCache):
         """
         if version is None:
             version = self.version
-
+        client = self.get_client(key)
         old = self.make_key(key, version)
         new = self.make_key(key, version=version + delta)
-
         try:
-            self._client.renamenx(old, new)
+            client.rename(old, new)
         except redis.ResponseError:
             raise ValueError("Key '%s' not found" % key)
 
         return version + delta
-
-
-
