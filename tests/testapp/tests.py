@@ -370,3 +370,21 @@ class RedisCacheTests(TestCase):
         self.assertEqual(self.cache.get("bool_t"), True)
         self.assertTrue(self.cache.set("bool_f", False))
         self.assertEqual(self.cache.get("bool_f"), False)
+
+    def test_delete_pattern(self):
+        data = {
+            'a': 'a',
+            'b': 'b',
+            'aa': 'aa',
+            'bb': 'bb',
+            'aaa': 'aaa',
+            'bbb': 'bbb',
+        }
+        self.cache.set_many(data)
+        self.cache.delete_pattern('aa*')
+        items = self.cache.get_many(data.keys())
+        self.assertEqual(len(items), 4)
+
+        self.cache.delete_pattern('b?b')
+        items = self.cache.get_many(data.keys())
+        self.assertEqual(len(items), 3)
