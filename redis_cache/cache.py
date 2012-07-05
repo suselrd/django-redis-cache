@@ -163,6 +163,13 @@ class RedisCache(BaseCache):
     def __setstate__(self, state):
         self._init(**state)
 
+    def get_value(self, original):
+        try:
+            value = int(original)
+        except (ValueError, TypeError):
+            value = self.deserialize(original)
+        return value
+
     def get_client(self, key):
         return self.sharder.get_client(key)
 
@@ -203,11 +210,8 @@ class RedisCache(BaseCache):
         value = client.get(key)
         if value is None:
             return default
-        try:
-            result = int(value)
-        except (ValueError, TypeError):
-            result = self.unpickle(value)
-        return result
+        value = self.get_value(value)
+        return value
 
     def _set(self, key, value, timeout, client, _add_only=False):
         if timeout == 0:
@@ -233,10 +237,9 @@ class RedisCache(BaseCache):
         key = self.make_key(key, version=version)
         if timeout is None:
             timeout = self.default_timeout
-
         # If ``value`` is not an int, then pickle it
         if not isinstance(value, int) or isinstance(value, bool):
-            result = self._set(key, pickle.dumps(value), int(timeout), client, _add_only)
+            result = self._set(key, self.serialize(value), int(timeout), client, _add_only)
         else:
             result = self._set(key, value, int(timeout), client, _add_only)
         # result is a boolean
@@ -274,7 +277,10 @@ class RedisCache(BaseCache):
         for client in self.clients:
             client.flushdb()
 
-    def unpickle(self, value):
+    def serialize(self, value):
+        return pickle.dumps(value)
+
+    def deserialize(self, value):
         """
         Unpickles the given value.
         """
@@ -294,12 +300,7 @@ class RedisCache(BaseCache):
         for key, value in zip(new_keys, results):
             if value is None:
                 continue
-            try:
-                value = int(value)
-            except (ValueError, TypeError):
-                value = self.unpickle(value)
-            if isinstance(value, bytes_type):
-                value = smart_text(value)
+            value = self.get_value(value)
             recovered_data[map_keys[key]] = value
         return recovered_data
 
