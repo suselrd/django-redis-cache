@@ -15,7 +15,8 @@ Changelog
 * Client-side sharding when multiple locations provided.
 * Delete keys using wildcard syntax.
 * Clear cache using version to delete only keys under that namespace.
-* Ability to select pickle version.
+* Ability to select pickle protocol version.
+* Support for Master-Slave setup
 
 
 0.10.0
@@ -61,6 +62,7 @@ Configuraton
 ============
 
 example::
+
     # When using TCP connections
     CACHES = {
         'default': {
@@ -91,6 +93,26 @@ example::
                 'PASSWORD': 'yadayada',
                 'PARSER_CLASS': 'redis.connection.HiredisParser',
                 'PICKLE_VERSION': 2, # Defaults to 0
+            },
+        },
+    }
+
+    # For Master-Slave Setup, specify the host:port of the master
+    # redis-server instance.
+    CACHES = {
+        'default': {
+            'BACKEND': 'redis_cache.RedisCache',
+            'LOCATION': [
+                '<host>:<port>',
+                '<host>:<port>',
+                '<host>:<port>',
+            ],
+            'OPTIONS': {
+                'DB': 1,
+                'PASSWORD': 'yadayada',
+                'PARSER_CLASS': 'redis.connection.HiredisParser',
+                'PICKLE_VERSION': 2, # Defaults to 0
+                'MASTER_CACHE': '<master host>:<master port>',
             },
         },
     }
