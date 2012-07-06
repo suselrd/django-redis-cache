@@ -103,6 +103,8 @@ example::
 Running Tests
 =============
 
+Currently, running tests requires installing my fork of redis-py (https://github.com/sebleier/redis-py)
+
 ./run_tests -s path/to/redis-server
 
 .. _redis-py: http://github.com/andymccurdy/redis-py/
