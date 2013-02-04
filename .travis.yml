@@ -17,5 +17,5 @@ install:
 branches:
   only:
     - master
-    - experimental
+    - unstable
 script: ./travis_run_all_tests.sh
