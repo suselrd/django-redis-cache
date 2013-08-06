@@ -4,11 +4,7 @@ from settings.base_settings import *
 CACHES = {
     'default': {
         'BACKEND': 'redis_cache.RedisCache',
-        'LOCATION': [
-            '127.0.0.1:6380',
-            '127.0.0.1:6381',
-            '127.0.0.1:6382',
-        ],
+        'LOCATION': '127.0.0.1:6380',
         'OPTIONS': {
             'DB': 15,
             'PASSWORD': 'yadayada',
