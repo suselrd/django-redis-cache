@@ -313,23 +313,6 @@ class RedisCacheTests(TestCase):
             self.assertEqual(self.cache.get(key, version=1), None)
             self.assertEqual(self.cache.get(key, version=2), 'spam')
 
-    def test_incr_with_pickled_integer(self):
-        "Testing case where there exists a pickled integer and we increment it"
-        number = 42
-        key = self.cache.make_key("key")
-        # manually set value using the redis client
-        self.cache.get_client("key", for_write=True).set(key, pickle.dumps(number))
-        new_value = self.cache.incr(key)
-        self.assertEqual(new_value, number + 1)
-
-        # Test that the pickled value was converted to an integer
-        value = int(self.cache.get_client(key).get(key))
-        self.assertTrue(isinstance(value, int))
-
-        # now that the value is an integer, let's increment it again.
-        new_value = self.cache.incr(key, 7)
-        self.assertEqual(new_value, number + 8)
-
     def test_pickling_cache_object(self):
         p = pickle.dumps(self.cache)
         cache = pickle.loads(p)
@@ -410,12 +393,14 @@ class RedisCacheTests(TestCase):
         self.assertEqual(len(values), 0)
 
     def test_reinsert_keys(self):
+        print
         self.cache._pickle_version = 0
         for i in range(2000):
             s = sha1(str(i)).hexdigest()
             self.cache.set(s, self.cache)
         self.cache._pickle_version = -1
         self.cache.reinsert_keys()
+        print
 
     def test_ttl_of_reinsert_keys(self):
         self.cache.set('a', 'a', 5)

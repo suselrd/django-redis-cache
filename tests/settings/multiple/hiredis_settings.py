@@ -1,11 +1,14 @@
-from .base_settings import *
-from os.path import join, dirname
+from settings.base_settings import *
 
 
 CACHES = {
     'default': {
-        'BACKEND': 'redis_cache.RedisCache',
-        'LOCATION': join(dirname(__file__), 'redis.sock'),
+        'BACKEND': 'redis_cache.cache.RedisCache',
+        'LOCATION': [
+            '127.0.0.1:6380',
+            '127.0.0.1:6381',
+            '127.0.0.1:6382',
+        ],
         'OPTIONS': {
             'DB': 15,
             'PASSWORD': 'yadayada',
@@ -14,4 +17,3 @@ CACHES = {
         },
     },
 }
-

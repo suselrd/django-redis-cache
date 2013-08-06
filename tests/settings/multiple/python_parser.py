@@ -1,4 +1,4 @@
-from .base_settings import *
+from settings.base_settings import *
 
 
 CACHES = {

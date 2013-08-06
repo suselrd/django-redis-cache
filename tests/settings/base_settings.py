@@ -8,3 +8,4 @@ INSTALLED_APPS = [
     'tests.testapp',
 ]
 ROOT_URLCONF = 'tests.urls'
+SECRET_KEY = "shh...it's a seakret"
