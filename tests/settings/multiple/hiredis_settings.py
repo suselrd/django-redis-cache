@@ -3,7 +3,7 @@ from settings.base_settings import *
 
 CACHES = {
     'default': {
-        'BACKEND': 'redis_cache.cache.RedisCache',
+        'BACKEND': 'redis_cache.cache.ShardedRedisCache',
         'LOCATION': [
             '127.0.0.1:6380',
             '127.0.0.1:6381',

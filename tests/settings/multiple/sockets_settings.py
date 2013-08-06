@@ -4,7 +4,7 @@ from os.path import join, dirname
 
 CACHES = {
     'default': {
-        'BACKEND': 'redis_cache.RedisCache',
+        'BACKEND': 'redis_cache.ShardedRedisCache',
         'LOCATION': join(dirname(__file__), 'redis.sock'),
         'OPTIONS': {
             'DB': 15,
