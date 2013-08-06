@@ -313,6 +313,23 @@ class BaseRedisCache(BaseCache):
     def delete_pattern(self, pattern, version=None):
         raise NotImplementedError
 
+    def _get_or_set(self, client, key, func, timeout=None):
+        if not callable(func):
+            raise Exception("func must be a callable")
+        placeholder_key = "_" + key._versioned_key
+        placeholder = client.get(placeholder_key)
+        if placeholder is None:
+            self._set(client, placeholder_key, 0, None)
+            value = func()
+            self._set(client, key, self.prep_value(value), None)
+            self._set(client, placeholder_key, 0, timeout)
+        else:
+            value = self._get(client, key)
+        return value
+
+    def get_or_set(self, key, func, timeout=None, version=None):
+        raise NotImplementedError
+
     def _print_progress(self, progress):
         """
         Helper function to print out the progress of the reinsertion.

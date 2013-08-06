@@ -411,3 +411,28 @@ class RedisCacheTests(TestCase):
         self.assertTrue(self.cache.get_client('a').ttl(self.cache.make_key('a')) > 1)
         self.assertEqual(self.cache.get('b'), 'b')
         self.assertTrue(self.cache.get_client('b').ttl(self.cache.make_key('b')) > 1)
+
+    def test_get_or_set(self):
+
+        def expensive_function():
+            expensive_function.num_calls += 1
+            return 42
+
+        expensive_function.num_calls = 0
+        self.assertEqual(expensive_function.num_calls, 0)
+        value = self.cache.get_or_set('a', expensive_function, 1)
+        self.assertEqual(expensive_function.num_calls, 1)
+        self.assertEqual(value, 42)
+
+        value = self.cache.get_or_set('a', expensive_function, 1)
+        self.assertEqual(expensive_function.num_calls, 1)
+        self.assertEqual(value, 42)
+
+        value = self.cache.get_or_set('a', expensive_function, 1)
+        self.assertEqual(expensive_function.num_calls, 1)
+        self.assertEqual(value, 42)
+
+        time.sleep(2)
+        value = self.cache.get_or_set('a', expensive_function, 1)
+        self.assertEqual(expensive_function.num_calls, 2)
+        self.assertEqual(value, 42)

@@ -185,6 +185,10 @@ class RedisCache(BaseRedisCache):
         pattern = self.make_key(pattern, version=version)
         self._delete_pattern(self.client, pattern)
 
+    def get_or_set(self, key, func, timeout=None, version=None):
+        key = self.make_key(key, version=version)
+        return self._get_or_set(self.client, key, func, timeout)
+
     def reinsert_keys(self):
         """
         Reinsert cache entries using the current pickle protocol version.
