@@ -17,6 +17,7 @@ Changelog
 * Clear cache using version to delete only keys under that namespace.
 * Ability to select pickle protocol version.
 * Support for Master-Slave setup
+* Thundering herd protection
 
 
 0.10.0
@@ -158,6 +159,27 @@ is useful when changing the pickle protocol number of all the cache entries.
 As of django-redis-cache < 1.0, all cache entries were pickled using version 0.
 To reduce the memory footprint of the redis-server, simply run this method to
 upgrade cache entries to the latest protocol.
+
+Thundering Herd Protection
+==========================
+
+A common problem with caching is that you can sometimes get into a situation
+where you have a value that takes a long time to compute or retrieve, but have
+clients accessing it a lot.  For example, if you wanted to retrieve the latest
+tweets from the twitter api, you will probably cache the response for a number
+of minutes so you don't exceed your rate limit.  However, when the cache entry
+expires you can have mulitple clients that see there is no entry and try to
+simultaneously fetch the latest from the api.
+
+The way to get around this problem you pass in a callable and timeout to
+``get_or_set``, which will check the cache to see if you need to compute the
+value.  If it does, then the cache sets a placeholder that tells future clients
+to serve data from the stale cache until the new value is created.
+
+Example::
+
+    tweets = cache.get_or_set('tweets', twitter.get_newest, timeout=300)
+
 
 Running Tests
 =============

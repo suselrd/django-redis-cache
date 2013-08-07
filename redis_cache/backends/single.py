@@ -196,3 +196,4 @@ class RedisCache(BaseRedisCache):
         self._reinsert_keys(self.client)
         self._print_progress(1)
         print
+
