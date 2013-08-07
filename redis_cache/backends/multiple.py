@@ -250,6 +250,11 @@ class ShardedRedisCache(BaseRedisCache):
             keys = self.master_client.keys(pattern)
             self._delete_pattern(self.master_client, pattern)
 
+    def get_or_set(self, key, func, timeout=None, version=None):
+        key = self.make_key(key, version=version)
+        client = self.get_client(key, for_write=True)
+        return self._get_or_set(client, key, func, timeout)
+
     def reinsert_keys(self):
         """
         Reinsert cache entries using the current pickle protocol version.
