@@ -1,6 +1,7 @@
-from django.utils.encoding import smart_unicode, smart_str
+from .compat import smart_text, python_2_unicode_compatible
 
 
+@python_2_unicode_compatible
 class CacheKey(object):
     """
     A stub string class that we can use to check if a key was created already.
@@ -13,6 +14,6 @@ class CacheKey(object):
         return self._versioned_key == other
 
     def __unicode__(self):
-        return smart_str(self._versioned_key)
+        return smart_text(self._versioned_key)
 
     __repr__ = __str__ = __unicode__

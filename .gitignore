@@ -15,3 +15,4 @@ development_settings.py
 dist/*
 dump.rdb
 dist/*
+MANIFEST

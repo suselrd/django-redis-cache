@@ -1,28 +1,14 @@
-import sys
-from collections import defaultdict
-from math import ceil
-from django.core.cache.backends.base import BaseCache, InvalidCacheBackendError
+from django.core.cache.backends.base import InvalidCacheBackendError
 from django.core.exceptions import ImproperlyConfigured
-from django.utils import importlib
-from django.utils.encoding import smart_unicode, smart_str
-from django.utils.datastructures import SortedDict
-
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
+from .compat import bytes_type
 
 try:
     import redis
 except ImportError:
     raise InvalidCacheBackendError("Redis cache backend requires the 'redis-py' library")
 
-from redis.connection import DefaultParser
-
 from redis_cache.backends.base import BaseRedisCache
-from redis_cache.sharder import CacheSharder
 from redis_cache.connection import pool
-from redis_cache.utils import CacheKey
 
 
 class RedisCache(BaseRedisCache):
@@ -37,7 +23,7 @@ class RedisCache(BaseRedisCache):
         super(BaseRedisCache, self).__init__(params)
         self._params = params
         self._server = server
-        if not isinstance(server, basestring):
+        if not isinstance(server, bytes_type):
             self._server, = server
 
         self._pickle_version = None
@@ -170,7 +156,6 @@ class RedisCache(BaseRedisCache):
         """
         if version is None:
             version = self.version
-
 
         old = self.make_key(key, version)
         new = self.make_key(key, version=version + delta)

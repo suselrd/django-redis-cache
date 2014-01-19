@@ -1,11 +1,9 @@
 import sys
-from collections import defaultdict
 from math import ceil
 from django.core.cache.backends.base import BaseCache, InvalidCacheBackendError
 from django.core.exceptions import ImproperlyConfigured
 from django.utils import importlib
-from django.utils.encoding import smart_unicode, smart_str
-from django.utils.datastructures import SortedDict
+from .compat import smart_bytes
 
 try:
     import cPickle as pickle
@@ -19,7 +17,6 @@ except ImportError:
 
 from redis.connection import DefaultParser
 
-from redis_cache.connection import pool
 from redis_cache.utils import CacheKey
 
 
@@ -118,10 +115,8 @@ class BaseRedisCache(BaseCache):
         """
         Unpickles the given value.
         """
-        try:
-            return pickle.loads(value)
-        except:
-            raise
+        value = smart_bytes(value)
+        return pickle.loads(value)
 
     def get_value(self, original):
         try:
@@ -252,7 +247,7 @@ class BaseRedisCache(BaseCache):
 
     def _set_many(self, client, data):
         new_data = {}
-        for key, value in data.iteritems():
+        for key, value in data.items():
             new_data[key] = self.prep_value(value)
 
         return client.mset(new_data)

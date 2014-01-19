@@ -1,28 +1,15 @@
-import sys
 from collections import defaultdict
-from math import ceil
-from django.core.cache.backends.base import BaseCache, InvalidCacheBackendError
+from django.core.cache.backends.base import InvalidCacheBackendError
 from django.core.exceptions import ImproperlyConfigured
-from django.utils import importlib
-from django.utils.encoding import smart_unicode, smart_str
-from django.utils.datastructures import SortedDict
-
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
 
 try:
     import redis
 except ImportError:
     raise InvalidCacheBackendError("Redis cache backend requires the 'redis-py' library")
 
-from redis.connection import DefaultParser
-
 from redis_cache.backends.base import BaseRedisCache
 from redis_cache.sharder import CacheSharder
 from redis_cache.connection import pool
-from redis_cache.utils import CacheKey
 
 
 class ShardedRedisCache(BaseRedisCache):
@@ -200,14 +187,14 @@ class ShardedRedisCache(BaseRedisCache):
         clients = self.shard(data.keys(), for_write=True, version=version)
 
         if timeout is None:
-            for client, keys in clients.iteritems():
+            for client, keys in clients.items():
                 subset = {}
                 for key in keys:
                     subset[key] = data[key._original_key]
                 self._set_many(client, subset)
             return
 
-        for client, keys in clients.iteritems():
+        for client, keys in clients.items():
             pipeline = client.pipeline()
             for key in keys:
                 self._set(pipeline, key, data[key._original_key], timeout)
@@ -247,7 +234,6 @@ class ShardedRedisCache(BaseRedisCache):
             for client in self.clients:
                 self._delete_pattern(client, pattern)
         else:
-            keys = self.master_client.keys(pattern)
             self._delete_pattern(self.master_client, pattern)
 
     def get_or_set(self, key, func, timeout=None, version=None):
