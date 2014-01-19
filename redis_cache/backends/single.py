@@ -1,6 +1,6 @@
 from django.core.cache.backends.base import InvalidCacheBackendError
 from django.core.exceptions import ImproperlyConfigured
-from .compat import bytes_type
+from redis_cache.compat import bytes_type
 
 try:
     import redis

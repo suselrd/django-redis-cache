@@ -3,7 +3,7 @@ from math import ceil
 from django.core.cache.backends.base import BaseCache, InvalidCacheBackendError
 from django.core.exceptions import ImproperlyConfigured
 from django.utils import importlib
-from .compat import smart_bytes
+from redis_cache.compat import smart_bytes
 
 try:
     import cPickle as pickle

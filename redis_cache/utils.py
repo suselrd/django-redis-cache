@@ -1,4 +1,4 @@
-from .compat import smart_text, python_2_unicode_compatible
+from redis_cache.compat import smart_text, python_2_unicode_compatible
 
 
 @python_2_unicode_compatible
