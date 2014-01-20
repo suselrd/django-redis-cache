@@ -311,15 +311,18 @@ class BaseRedisCache(BaseCache):
     def _get_or_set(self, client, key, func, timeout=None):
         if not callable(func):
             raise Exception("func must be a callable")
-        placeholder_key = "_" + key._versioned_key
-        placeholder = client.get(placeholder_key)
-        if placeholder is None:
-            self._set(client, placeholder_key, 0, None)
+
+        dogpile_lock_key = "_lock" + key._versioned_key
+        dogpile_lock = client.get(dogpile_lock_key)
+
+        if dogpile_lock is None:
+            self._set(client, dogpile_lock_key, 0, None)
             value = func()
             self._set(client, key, self.prep_value(value), None)
-            self._set(client, placeholder_key, 0, timeout)
+            self._set(client, dogpile_lock_key, 0, timeout)
         else:
             value = self._get(client, key)
+
         return value
 
     def get_or_set(self, key, func, timeout=None, version=None):
