@@ -179,6 +179,3 @@ class RedisCache(BaseRedisCache):
         Reinsert cache entries using the current pickle protocol version.
         """
         self._reinsert_keys(self.client)
-        self._print_progress(1)
-        print
-

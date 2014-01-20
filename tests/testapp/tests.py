@@ -393,14 +393,12 @@ class RedisCacheTests(TestCase):
         self.assertEqual(len(values), 0)
 
     def test_reinsert_keys(self):
-        print
         self.cache._pickle_version = 0
         for i in range(2000):
             s = sha1(str(i)).hexdigest()
             self.cache.set(s, self.cache)
         self.cache._pickle_version = -1
         self.cache.reinsert_keys()
-        print
 
     def test_ttl_of_reinsert_keys(self):
         self.cache.set('a', 'a', 5)

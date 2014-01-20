@@ -245,8 +245,6 @@ class ShardedRedisCache(BaseRedisCache):
         """
         Reinsert cache entries using the current pickle protocol version.
         """
-
-        for i, client in enumerate(self.clients):
+        for client in self.clients:
             self._reinsert_keys(client)
-        self._print_progress(1)
         print

@@ -328,26 +328,14 @@ class BaseRedisCache(BaseCache):
     def get_or_set(self, key, func, timeout=None, version=None):
         raise NotImplementedError
 
-    def _print_progress(self, progress):
-        """
-        Helper function to print out the progress of the reinsertion.
-        """
-        sys.stdout.flush()
-        progress = int(ceil(progress * 80))
-        msg = "Reinserting keys: |%s|\r" % (progress * "=" + (80 - progress) * " ")
-        sys.stdout.write(msg)
-
     def _reinsert_keys(self, client):
         keys = client.keys('*')
-        for i, key in enumerate(keys):
+        for key in keys:
             timeout = client.ttl(key)
             value = self.deserialize(client.get(key))
 
             if timeout is None:
                 client.set(key, self.prep_value(value))
-
-            progress = float(i) / len(keys)
-            self._print_progress(progress)
 
     def reinsert_keys(self):
         """
