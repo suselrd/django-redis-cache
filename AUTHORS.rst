@@ -15,3 +15,4 @@ Matt Robenolt / mattrobenolt <https://github.com/mattrobenolt>
 Carl Meyer / carljm <https://github.com/carljm>
 wtracyliu / wtracyliu <https://github.com/wtracyliu>
 Florent Messa / thoas <https://github.com/thoas>
+Susel Ruiz Duran <http://github.com/suselrd>

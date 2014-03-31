@@ -319,6 +319,102 @@ class CacheClass(BaseCache):
             self.set(key, value)
         return value
 
+    def add_to_sorted_set(self, key, value, score, version=None, client=None):
+        if not client:
+            client = self._client
+        key = self.make_key(key, version=version)
+        if not isinstance(value, int) or isinstance(value, bool):
+            value = pickle.dumps(value)
+        return client.zadd(key, value, score)
+
+    def rem_from_sorted_set(self, key, value, version=None, client=None):
+        if not client:
+            client = self._client
+        key = self.make_key(key, version=version)
+        if not isinstance(value, int) or isinstance(value, bool):
+            value = pickle.dumps(value)
+        return client.zrem(key, value)
+
+    def sorted_set_range(self, key, start, end, version=None, client=None):
+        if not client:
+            client = self._client
+        key = self.make_key(key, version=version)
+        items = client.zrange(key, start, end)
+        result = []
+        for item in items:
+            try:
+                item = int(item)
+            except (ValueError, TypeError):
+                item = self.unpickle(item)
+            result.append(item)
+        return result
+
+    def sorted_set_rev_range(self, key, start, num, version=None, client=None):
+        if not client:
+            client = self._client
+        key = self.make_key(key, version=version)
+        items = client.zrevrange(key, start, num)
+        result = []
+        for item in items:
+            try:
+                item = int(item)
+            except (ValueError, TypeError):
+                item = self.unpickle(item)
+            result.append(item)
+        return result
+
+    def sorted_set_range_by_score(self, key, min, max, start=None, num=None, version=None, client=None):
+        if not client:
+            client = self._client
+        key = self.make_key(key, version=version)
+        items = client.zrangebyscore(key, min, max, start, num)
+        result = []
+        for item in items:
+            try:
+                item = int(item)
+            except (ValueError, TypeError):
+                item = self.unpickle(item)
+            result.append(item)
+        return result
+
+    def sorted_set_rev_range_by_score(self, key, min, max, start=None, num=None, version=None, client=None):
+        if not client:
+            client = self._client
+        key = self.make_key(key, version=version)
+        items = client.zrevrangebyscore(key, min, max, start, num)
+        result = []
+        for item in items:
+            try:
+                item = int(item)
+            except (ValueError, TypeError):
+                item = self.unpickle(item)
+            result.append(item)
+        return result
+
+    def sorted_set_count(self, key, version=None, client=None):
+        if not client:
+            client = self._client
+        key = self.make_key(key, version=version)
+        return client.zcard(key)
+
+    def sorted_set_intercept(self, destination, keys, aggregate=None, version=None, client=None):
+        if not client:
+            client = self._client
+        destination = self.make_key(destination, version=version)
+        if isinstance(keys, dict):
+            new_keys = dict()
+            for key, weight in keys.items():
+                new_keys[self.make_key(key, version=version)] = weight
+        else:
+            new_keys = list()
+            for key in keys:
+                new_keys.append(self.make_key(key, version=version))
+        keys = new_keys
+        return client.zinterstore(destination, keys, aggregate)
+
+    def pipeline(self, transaction=True, shard_hint=None):
+        return RedisPipeline(self._server, self._params, transaction, shard_hint)
+
 
 class RedisCache(CacheClass):
     """
@@ -351,3 +447,12 @@ class RedisCache(CacheClass):
         self.set(new_key, value, timeout=ttl)
         self.delete(old_key)
         return version + delta
+
+
+class RedisPipeline(RedisCache):
+    def __init__(self, server, params, transaction=True, shard_hint=None):
+        super(RedisPipeline, self).__init__(server, params)
+        self._client = self._client.pipeline(transaction, shard_hint)
+
+    def execute(self):
+        return self._client.execute()

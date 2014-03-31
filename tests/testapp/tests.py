@@ -388,6 +388,29 @@ class RedisCacheTests(TestCase):
         cache._client.connection_pool.release = release
         cache._client.connection_pool.max_connections = 2**31
 
+    def test_sorted_sets(self):
+        key = self.cache.make_key("key")
+        polls = [Poll.objects.create(question="Well?"),
+                 Poll.objects.create(question="And then?")]
+        count = 0
+        for poll in polls:
+            count += 1
+            self.cache.add_to_sorted_set(key, poll, count)
+        self.assertEqual(self.cache.sorted_set_count(key), count)
+        self.assertEqual(self.cache.sorted_set_range(key, 0, count)[0].question, polls[0].question)
+        self.assertEqual(self.cache.sorted_set_rev_range(key, 0, count)[0].question, polls[-1].question)
+        self.assertEqual(self.cache.rem_from_sorted_set(key, polls[0]), True)
+        self.assertEqual(self.cache.rem_from_sorted_set(key, polls[0]), False)
+
+    def test_pipeline(self):
+        pipeline = self.cache.pipeline()
+        key = self.cache.make_key("key")
+        poll = Poll.objects.create(question="Well?")
+        pipeline.set(key, poll)
+        self.assertEqual(self.cache.get(key, "does not exist"), "does not exist")
+        pipeline.execute()
+        self.assertEqual(self.cache.get(key).question, poll.question)
+
 
 if __name__ == '__main__':
     import unittest

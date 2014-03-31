@@ -2,10 +2,10 @@ from setuptools import setup
 
 setup(
     name = "django-redis-cache",
-    url = "http://github.com/sebleier/django-redis-cache/",
-    author = "Sean Bleier",
-    author_email = "sebleier@gmail.com",
-    version = "0.11.1",
+    url = "http://github.com/suselrd/django-redis-cache/",
+    author = "Susel Ruiz Duran",
+    author_email = "suselrd@gmail.com",
+    version = "0.11.2",
     packages = ["redis_cache"],
     description = "Redis Cache Backend for Django",
     install_requires=['redis>=2.4.5',],

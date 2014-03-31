@@ -15,9 +15,9 @@ CACHES = {
         'BACKEND': 'redis_cache.RedisCache',
         'LOCATION': '127.0.0.1:6379',
         'OPTIONS': {  # optional
-            'DB': 15,
-            'PASSWORD': 'yadayada',
-            'MAX_CONNECTIONS': 2,
+            'CONNECTION_POOL_CLASS_KWARGS': {
+                'max_connections': 2
+            }
         },
     },
 }
