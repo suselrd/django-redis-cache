@@ -183,6 +183,10 @@ class CacheClass(BaseCache):
             key = CacheKey(key)
         return key
 
+    def has_key(self, key, version=None):
+        key = self.make_key(key, version=version)
+        return self._client.exists(key)
+
     def add(self, key, value, timeout=DEFAULT_TIMEOUT, version=None):
         """
         Add a value to the cache, failing if the key already exists.

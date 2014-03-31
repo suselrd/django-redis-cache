@@ -123,6 +123,11 @@ class RedisCacheTests(TestCase):
         self.assertEqual(self.cache.has_key("hello1"), True)
         self.assertEqual(self.cache.has_key("goodbye1"), False)
 
+        # All types of cache values can be inspected for cache keys (not only simple values)
+        self.cache.add_to_sorted_set("key2", "object2", 1)
+        self.assertEqual(self.cache.has_key("key2"), True)
+
+
     def test_in(self):
         # The in operator can be used to inspet cache contents
         self.cache.set("hello2", "goodbye2")
