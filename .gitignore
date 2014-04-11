@@ -6,6 +6,7 @@
 *.log
 *.json
 *.wsgi
+.idea/
 local_settings.py
 development_settings.py
 *.egg-info
@@ -13,4 +14,5 @@ development_settings.py
 .pydevproject
 .settings
 dist/*
+build/*
 MANIFEST
